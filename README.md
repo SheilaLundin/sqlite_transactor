@@ -1,5 +1,5 @@
 # sqlite_transactor
-rust sqlite transaction multi thread
+rust sqlite transaction multi threads
 
 ```rust
 use rusqlite::{Connection, Transaction};
