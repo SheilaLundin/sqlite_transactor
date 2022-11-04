@@ -1,6 +1,7 @@
 # sqlite_transactor
 rust sqlite transaction multi thread
-```
+
+```rust
 use rusqlite::{Connection, Transaction};
 use sqlite_transactor::SqliteTransactor;
 use std::{sync::Arc, thread, time};
