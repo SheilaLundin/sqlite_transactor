@@ -1,0 +1,16 @@
+[package]
+name = "sqlite_transactor"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.66"
+crossbeam-channel = "0.5.6"
+serde_json = "1.0.87"
+log = "0.4.17"
+
+[dependencies.rusqlite]
+version = "0.28.0"
+features = ["bundled"]
