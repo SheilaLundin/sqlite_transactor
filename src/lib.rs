@@ -15,7 +15,7 @@ pub struct SqliteTransactor {
 }
 
 impl SqliteTransactor {
-    pub fn new(mut conn: Connection, cap: usize) -> (Arc<SqliteTransactor>, JoinHandle<()>) {
+    pub fn begin(mut conn: Connection, cap: usize) -> (Arc<SqliteTransactor>, JoinHandle<()>) {
         let (sender, receiver) = bounded::<(
             Box<dyn Fn(&Transaction) -> anyhow::Result<Value> + Send + 'static>,
             Sender<anyhow::Result<Value>>,
@@ -56,7 +56,7 @@ impl SqliteTransactor {
         rx.recv().map_err(|e| anyhow!("{}", e))?
     }
 
-    pub fn commit(actor: Arc<SqliteTransactor>, handle: JoinHandle<()>) -> anyhow::Result<()> {
+    pub fn end(actor: Arc<SqliteTransactor>, handle: JoinHandle<()>) -> anyhow::Result<()> {
         drop(actor);
         Ok(handle.join().map_err(|e| anyhow!("{:?}", e))?)
     }
