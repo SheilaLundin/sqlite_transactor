@@ -13,4 +13,4 @@ log = "0.4.17"
 
 [dependencies.rusqlite]
 version = "0.28.0"
-features = ["bundled"]
+features = ["bundled", "serde_json"]
