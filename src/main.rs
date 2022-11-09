@@ -26,14 +26,14 @@ fn main() {
         "test"
     );
 
-    let (actor, handle) = SqliteTransactor::begin(conn, 10);
+    let actor = SqliteTransactor::new(conn, 10);
 
     let mut hs = vec![];
     for _ in 0..10 {
         let sql = sql.clone();
         let actor = Arc::clone(&actor);
         let h = thread::spawn(move || {
-            for _ in 0..1000000 {
+            for _ in 0..10000 {
                 let sql = sql.clone();
                 actor
                     .execute(Box::new(move |transaction: &Transaction| {
@@ -58,8 +58,6 @@ fn main() {
     for h in hs {
         h.join().unwrap();
     }
-
-    let _ = SqliteTransactor::end(actor, handle);
 
     println!("time: {:?}", time::Instant::now() - now);
 }

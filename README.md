@@ -30,7 +30,7 @@ fn main() {
         "test"
     );
 
-    let (actor, handle) = SqliteTransactor::begin(conn, 10);
+    let actor = SqliteTransactor::new(conn, 10);
 
     let mut hs = vec![];
     for _ in 0..10 {
@@ -62,8 +62,6 @@ fn main() {
     for h in hs {
         h.join().unwrap();
     }
-
-    let _ = SqliteTransactor::end(actor, handle);
 
     println!("time: {:?}", time::Instant::now() - now);
 }

@@ -8,14 +8,17 @@ use serde_json::Value;
 
 #[derive(Debug)]
 pub struct SqliteTransactor {
-    sender: Sender<(
-        Box<dyn Fn(&Transaction) -> anyhow::Result<Value> + Send + 'static>,
-        Sender<anyhow::Result<Value>>,
-    )>,
+    sender: Option<
+        Sender<(
+            Box<dyn Fn(&Transaction) -> anyhow::Result<Value> + Send + 'static>,
+            Sender<anyhow::Result<Value>>,
+        )>,
+    >,
+    join_handle: Option<JoinHandle<()>>,
 }
 
 impl SqliteTransactor {
-    pub fn begin(mut conn: Connection, cap: usize) -> (Arc<SqliteTransactor>, JoinHandle<()>) {
+    pub fn new(mut conn: Connection, cap: usize) -> Arc<SqliteTransactor> {
         let (sender, receiver) = bounded::<(
             Box<dyn Fn(&Transaction) -> anyhow::Result<Value> + Send + 'static>,
             Sender<anyhow::Result<Value>>,
@@ -44,20 +47,37 @@ impl SqliteTransactor {
             }
         });
 
-        (Arc::new(Self { sender }), h)
+        Arc::new(Self {
+            sender: Some(sender),
+            join_handle: Some(h),
+        })
     }
 
     pub fn execute(
         &self,
         f: Box<dyn Fn(&Transaction) -> anyhow::Result<Value> + Send + 'static>,
     ) -> anyhow::Result<Value> {
+        let sender = self.sender.as_ref().ok_or(anyhow!("sender is None"))?;
         let (tx, rx) = bounded::<anyhow::Result<Value>>(0);
-        self.sender.send((f, tx)).map_err(|e| anyhow!("{}", e))?;
+        sender.send((f, tx)).map_err(|e| anyhow!("{}", e))?;
         rx.recv().map_err(|e| anyhow!("{}", e))?
     }
 
     pub fn end(actor: Arc<SqliteTransactor>, handle: JoinHandle<()>) -> anyhow::Result<()> {
         drop(actor);
         Ok(handle.join().map_err(|e| anyhow!("{:?}", e))?)
+    }
+}
+
+impl Drop for SqliteTransactor {
+    fn drop(&mut self) {
+        if let Some(sender) = self.sender.take() {
+            drop(sender);
+        }
+        if let Some(handle) = self.join_handle.take() {
+            if let Err(e) = handle.join() {
+                error!("{e:?}");
+            }
+        }
     }
 }
